@@ -4,6 +4,7 @@ import os
 import json
 from analyzer import RepositoryAnalyzer
 from graph import GraphEngine
+from risk_engine import RiskEngine
 
 def handle_scan(args):
     path = args.path
@@ -55,33 +56,47 @@ def handle_impact(args):
         graph_engine = GraphEngine()
         blast_radius = graph_engine.analyze_repository_impact(analysis)
 
+        risk_engine = RiskEngine()
+        risk_report = risk_engine.evaluate_risk(blast_radius)
+
         check_mark = "[+]" if sys.platform == "win32" and not sys.stdout.encoding or sys.stdout.encoding.lower().startswith("cp") else "✓"
-        print("\nRipple Impact Analysis (Blast Radius)\n")
-        print(f"{check_mark} Directly changed files: {len(blast_radius.directly_changed_files)}")
-        for f in blast_radius.directly_changed_files:
-            print(f"    - {f}")
+        print("\nRipple Impact Analysis\n")
 
-        print(f"\n{check_mark} Directly changed components: {len(blast_radius.directly_changed_nodes)}")
-        for node in blast_radius.directly_changed_nodes:
-            print(f"    - [{node.type.value}] {node.label}")
+        print("Changed:")
+        if blast_radius.directly_changed_files:
+            for f in blast_radius.directly_changed_files:
+                print(f"  {f}")
+        else:
+            print("  (No direct git changes detected)")
 
-        print(f"\n{check_mark} Total impacted downstream components: {blast_radius.total_impacted_count}")
-        print(f"{check_mark} Affected API endpoints: {len(blast_radius.impacted_endpoints)}")
+        print("\nAffected:")
+        affected_items = risk_report.affected_services + risk_report.affected_endpoints
+        if affected_items:
+            for item in affected_items:
+                print(f"  {item}")
+        else:
+            print("  (None)")
 
-        if blast_radius.impacted_endpoints:
-            print("\nImpacted Endpoints:")
-            for ep in blast_radius.impacted_endpoints:
-                print(f"  * {ep.label} ({ep.file_path})")
+        dash = "-" if sys.platform == "win32" and not sys.stdout.encoding or sys.stdout.encoding.lower().startswith("cp") else "—"
+        print(f"\nRisk:\n  {risk_report.risk_level.value} {dash} {risk_report.total_score}/100")
 
-        if blast_radius.impacted_nodes:
-            print("\nDownstream Impact Chain:")
-            for imp in blast_radius.impacted_nodes[:15]:
-                indent = "  " * imp.distance
-                print(f"{indent}-> [{imp.impact_type}] {imp.node.label} (dist: {imp.distance})")
+        if risk_report.factors:
+            print("\nFactors:")
+            for f in risk_report.factors:
+                print(f"  +{f.score:<2} {f.name} ({f.description})")
+
+        if risk_report.recommendations:
+            print("\nRecommendations:")
+            for rec in risk_report.recommendations:
+                print(f"  -> {rec}")
 
         if args.json:
-            print("\nBlast Radius (JSON):")
-            print(json.dumps(blast_radius.model_dump(), indent=2))
+            output_data = {
+                "impact": blast_radius.model_dump(),
+                "risk_report": risk_report.model_dump()
+            }
+            print("\nCombined Analysis Output (JSON):")
+            print(json.dumps(output_data, indent=2))
 
     except Exception as e:
         print(f"Error computing impact: {e}")
