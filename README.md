@@ -16,12 +16,99 @@ Code reviews today lack automated, cross-service dependency impact analysis, lea
 
 ## 💡 Solution Overview
 
-Ripple analyzes modified code alongside system dependency metadata (services, APIs, schemas, and import trees). It computes an impact graph and calculates a deterministic risk score for the change, presenting a visual ripple effect map directly in the developer workflow.
+Ripple analyzes modified code alongside system dependency metadata (services, APIs, schemas, and import trees) and OpenTelemetry runtime traces. It computes an impact graph and calculates a deterministic risk score for the change, presenting a visual ripple effect map directly in the developer workflow and CI pipeline.
 
 Key principles:
 1. **Deterministic & Explainable Core**: Risk scoring and impact traversal are mathematically sound and traceable via NetworkX graph traversal.
-2. **AI Explanation Layer**: Generates plain-language summaries and impact insights based on deterministic graph findings.
-3. **Multi-Interface**: Supports CLI execution locally and interactive web visualizations on the dashboard.
+2. **Runtime Intelligence**: OpenTelemetry trace collection compares static code structure against actual runtime service traffic.
+3. **Multi-Interface**: Supports local CLI commands, automated GitHub Actions checks, and an interactive React web dashboard.
+
+---
+
+## ⚡ CLI Quick Start
+
+Ripple provides local developer CLI commands for repository inspection and risk evaluation:
+
+```bash
+# 1. Scan repository structure & AST symbols
+python -m cli.main scan demo_services
+
+# 2. Analyze change impact & blast radius
+python -m cli.main impact demo_services
+
+# 3. View live OpenTelemetry runtime service dependencies
+python -m cli.main runtime demo_services
+
+# 4. Detect architecture drift (Static Graph vs Runtime Reality)
+python -m cli.main drift demo_services
+
+# 5. Run CI/CD policy risk check
+python -m cli.main check demo_services --fail-on high
+```
+
+### Risk Score Policy & Exit Codes
+The `check` command evaluates the pull request change risk against a policy threshold:
+- **Exit Code 0**: Risk is below threshold (PASS).
+- **Exit Code 1**: Risk equals or exceeds threshold (e.g., `HIGH` or `CRITICAL`) — (FAIL).
+- **Exit Code 2**: Execution error or invalid repository path.
+
+Example CLI Check output:
+```text
+🌊 Ripple CI Check
+
+Change Risk: HIGH — 75/100
+
+Impact:
+  5 components
+  1 API
+  3 dependency levels
+
+Warnings / Risk Factors:
+  - Critical Service Affected: Changes propagate to critical module(s): payment
+  - API Endpoint Affected: Changes affect 1 exposed API endpoint
+
+Policy Check (Threshold: HIGH): FAILED
+```
+
+---
+
+## 🤖 GitHub Actions Integration
+
+Automate change impact checks on every Pull Request using `.github/workflows/ripple-check.yml`:
+
+```yaml
+name: Ripple Change Impact Analysis
+
+on:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  ripple-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Ripple CI Check
+        run: python -m cli.main check . --fail-on high --output-markdown ripple-report.md
+
+      - name: Upload Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ripple-report
+          path: ripple-report.md
+```
 
 ---
 
@@ -39,17 +126,17 @@ Key principles:
                                           |
                                           v
                                  +------------------+
-                                 |      Graph       | (Builds & traverses NetworkX DAG)
+                                 |  Graph & Runtime | (NetworkX DAG + OTLP Telemetry)
                                  +--------+---------+
                                           |
                                           v
                                  +------------------+
-                                 |   Risk Engine    | (Computes deterministic risk score)
+                                 |   Risk Engine    | (Deterministic 0-100 risk scoring)
                                  +--------+---------+
                                           |
                                           v
                                  +------------------+
-                                 |  FastAPI Backend | (Exposes REST API & Data Store)
+                                 |  FastAPI Backend | (Exposes REST API)
                                  +----+--------+----+
                                       |        |
                          +------------+        +------------+
@@ -63,70 +150,34 @@ Key principles:
 
 ## 📁 Repository Directory Structure
 
-- `backend/`: FastAPI application hosting REST endpoints, database access models, and API logic.
-- `frontend/`: React + TypeScript + Vite web dashboard for interactive visual graph rendering and risk summaries.
-- `cli/`: Command Line Interface for local developer workflow execution and CI integration.
-- `analyzer/`: Engine responsible for parsing code, diffs, ASTs, schema definitions, and API interfaces.
-- `graph/`: NetworkX graph representation, traversal engines, and downstream blast-radius calculator.
-- `risk-engine/`: Deterministic rules engine that outputs numerical risk scores based on blast radius, criticality, and breaking change flags.
-- `demo-services/`: Sample microservice codebase used to demonstrate Ripple's detection capabilities during testing and judging.
-- `tests/`: Automated unit and integration test suite (using Pytest).
-- `docs/`: Technical documentation, API specs, and Architecture Decision Records (ADRs).
+- `backend/`: FastAPI REST backend orchestrating analyzer, graph, risk, and runtime engines.
+- `frontend/`: React + TypeScript + Vite web dashboard featuring React Flow graph visualizers.
+- `cli/`: Developer CLI tool supporting `scan`, `impact`, `runtime`, `drift`, and `check`.
+- `analyzer/`: AST parsing and git diff extraction module.
+- `graph/`: NetworkX graph representation and blast-radius traversal engine.
+- `risk_engine/`: Deterministic 0–100 risk scoring rules engine.
+- `runtime/`: OpenTelemetry trace collector and architecture drift detector.
+- `demo_services/`: Distributed microservice application (Gateway, Users, Orders, Payment, Inventory).
+- `.github/workflows/`: GitHub Actions CI pipeline.
+- `tests/`: Pytest suite (32+ unit & integration tests).
 
 ---
 
-## ⚡ 48-Hour Hackathon MVP Scope
+## 🚀 Running the Project
 
-For BuildSprint 2026, the MVP will deliver:
-1. **Static AST & Dependency Graph Extraction**: Parse demo microservice ASTs and schemas into a NetworkX dependency graph.
-2. **Diff Blast Radius Traversal**: Evaluate changed lines/files against the dependency graph to find downstream affected services/endpoints.
-3. **Deterministic Scoring**: Calculate risk score (Low / Medium / High / Critical) based on direct & indirect impact paths.
-4. **Interactive Graph UI**: Display the ripple map and blast radius visually on the React dashboard.
-5. **CLI Command**: Run `ripple analyze` locally against git diffs.
-
----
-
-## 🚀 Running the Project Skeleton
-
-### Prerequisites
-- Python 3.10+
-- Node.js 18+ (for frontend)
-- Docker & Docker Compose (optional)
-
-### Backend Setup
-1. Create and activate virtual environment:
-   ```bash
-   python -m venv .venv
-   # Windows
-   .venv\Scripts\activate
-   # Linux/macOS
-   source .venv/bin/activate
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Start the backend development server:
-   ```bash
-   uvicorn backend.main:app --reload --port 8000
-   ```
-   Access API Docs at `http://localhost:8000/docs`
-
-### CLI Execution
-Run the CLI skeleton:
+### 1. Run Backend API
 ```bash
-python -m cli.main --version
+uvicorn backend.main:app --reload --port 8000
 ```
 
-### Frontend Setup
+### 2. Run Dashboard
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-### Docker Setup
-Run the infrastructure and backend:
+### 3. Run Test Suite
 ```bash
-docker-compose up --build
+python -m pytest
 ```
