@@ -52,6 +52,8 @@ def handle_scan(args):
         print(f"Error analyzing repository: {e}")
         sys.exit(2)
 
+from ai import AIService
+
 def handle_impact(args):
     path = args.path
     if not os.path.exists(path):
@@ -97,11 +99,28 @@ def handle_impact(args):
             for rec in risk_report.recommendations:
                 print(f"  -> {rec}")
 
+        explanation_data = None
+        if getattr(args, "explain", False):
+            ai_service = AIService()
+            explanation_data = ai_service.generate_explanation(risk_report.model_dump())
+            print("\n" + "="*50)
+            print("Why This Matters (AI Explanation):")
+            print(f"[{'Fallback Mode' if explanation_data.is_fallback else 'AI Powered - ' + explanation_data.provider_used}]")
+            print("="*50)
+            print(f"\n{explanation_data.summary}\n")
+            print(explanation_data.why_risky)
+            if explanation_data.recommended_actions:
+                print("\nRecommended Actions:")
+                for act in explanation_data.recommended_actions:
+                    print(f"  * {act}")
+
         if args.json:
             output_data = {
                 "impact": blast_radius.model_dump(),
                 "risk_report": risk_report.model_dump()
             }
+            if explanation_data:
+                output_data["explanation"] = explanation_data.model_dump()
             print("\nCombined Analysis Output (JSON):")
             print(json.dumps(output_data, indent=2))
 
@@ -274,6 +293,7 @@ def main():
     impact_parser = subparsers.add_parser("impact", help="Calculate change impact and blast radius")
     impact_parser.add_argument("path", nargs="?", default=".", help="Path to repository")
     impact_parser.add_argument("--base", help="Git base ref")
+    impact_parser.add_argument("--explain", action="store_true", help="Generate natural language AI/Fallback explanation")
     impact_parser.add_argument("--json", action="store_true", help="Output JSON")
 
     runtime_parser = subparsers.add_parser("runtime", help="Analyze live OpenTelemetry runtime service dependencies")

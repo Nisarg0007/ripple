@@ -24,15 +24,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from ai import AIService, ExplanationResponse
+
 class PathRequest(BaseModel):
     path: str = Field(default="demo_services", description="Local repository path to analyze")
     base_ref: Optional[str] = Field(default=None, description="Optional git base ref")
+    explain: bool = Field(default=False, description="Whether to generate AI explanation for risk report")
 
 class CombinedImpactResponse(BaseModel):
     analysis: AnalysisResult
     impact: BlastRadiusResult
     risk_report: RiskReport
     graph: NetworkGraphExport
+    explanation: Optional[ExplanationResponse] = None
 
 class DriftResponse(BaseModel):
     static_graph: NetworkGraphExport
@@ -82,11 +86,17 @@ def analyze_impact(req: PathRequest):
         risk_engine = RiskEngine()
         risk_report = risk_engine.evaluate_risk(impact)
 
+        explanation = None
+        if req.explain:
+            ai_service = AIService()
+            explanation = ai_service.generate_explanation(risk_report.model_dump())
+
         return CombinedImpactResponse(
             analysis=analysis,
             impact=impact,
             risk_report=risk_report,
-            graph=static_graph
+            graph=static_graph,
+            explanation=explanation
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Impact calculation failed: {str(e)}")

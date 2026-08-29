@@ -29,11 +29,11 @@ export async function analyzeRepository(path: string): Promise<AnalysisResult> {
   return res.json();
 }
 
-export async function fetchImpactAnalysis(path: string): Promise<CombinedImpactResponse> {
+export async function fetchImpactAnalysis(path: string, explain: boolean = true): Promise<CombinedImpactResponse> {
   const res = await fetch(`${API_BASE}/impact`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path })
+    body: JSON.stringify({ path, explain })
   });
   if (!res.ok) {
     const err = await res.json();

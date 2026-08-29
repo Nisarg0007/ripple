@@ -133,11 +133,22 @@ export interface RiskReport {
   is_breaking_change: boolean;
 }
 
+export interface ExplanationResponse {
+  summary: string;
+  why_risky: string;
+  affected_components: string[];
+  recommended_actions: string[];
+  provider_used: string;
+  is_fallback: boolean;
+  fallback_reason?: string;
+}
+
 export interface CombinedImpactResponse {
   analysis: AnalysisResult;
   impact: BlastRadiusResult;
   risk_report: RiskReport;
   graph: NetworkGraphExport;
+  explanation?: ExplanationResponse;
 }
 
 export interface RuntimeEdge {

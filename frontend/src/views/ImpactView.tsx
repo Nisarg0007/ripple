@@ -1,7 +1,7 @@
 import React from 'react';
 import { CombinedImpactResponse } from '../types/api';
 import { GraphViewer } from '../components/GraphViewer';
-import { AlertTriangle, CheckCircle2, ArrowRight, ShieldAlert, FileCode, Server, Layers } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ArrowRight, ShieldAlert, FileCode, Server, Layers, Sparkles } from 'lucide-react';
 
 interface ImpactViewProps {
   impactData: CombinedImpactResponse | null;
@@ -16,7 +16,7 @@ export const ImpactView: React.FC<ImpactViewProps> = ({ impactData }) => {
     );
   }
 
-  const { impact, risk_report: risk, graph } = impactData;
+  const { impact, risk_report: risk, graph, explanation } = impactData;
 
   const levelColorMap = {
     LOW: 'text-emerald-400 bg-emerald-950/80 border-emerald-800',
@@ -71,6 +71,28 @@ export const ImpactView: React.FC<ImpactViewProps> = ({ impactData }) => {
           </div>
         </div>
       </div>
+
+      {/* AI Explanation Banner */}
+      {explanation && (
+        <div className="bg-slate-900/90 p-6 rounded-xl border border-blue-900/40 space-y-3 shadow-lg">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2 font-semibold text-xs text-blue-400 uppercase tracking-wider">
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <span>Why Is This Risky? (Natural Language Explanation)</span>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 bg-slate-950 border border-slate-800 rounded text-slate-400">
+              {explanation.is_fallback ? 'Deterministic Fallback' : `AI Powered (${explanation.provider_used})`}
+            </span>
+          </div>
+
+          <div className="text-sm font-semibold text-slate-100">
+            {explanation.summary}
+          </div>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            {explanation.why_risky}
+          </p>
+        </div>
+      )}
 
       {/* Main Grid Layout: Interactive Graph + Impact Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
