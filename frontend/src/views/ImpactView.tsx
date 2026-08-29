@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { CombinedImpactResponse } from '../types/api';
 import { GraphViewer } from '../components/GraphViewer';
 import { AlertTriangle, CheckCircle2, ArrowRight, ShieldAlert, FileCode, Server, Layers, Sparkles } from 'lucide-react';
@@ -17,6 +17,25 @@ export const ImpactView: React.FC<ImpactViewProps> = ({ impactData }) => {
   }
 
   const { impact, risk_report: risk, graph, explanation } = impactData;
+
+  const blastRadiusGraph = useMemo(() => {
+    if (!graph || !impact) return graph;
+
+    const blastNodeIds = new Set<string>();
+    (impact.directly_changed_nodes || []).forEach((n) => blastNodeIds.add(n.id));
+    (impact.impacted_nodes || []).forEach((imp) => blastNodeIds.add(imp.node.id));
+    (impact.impacted_endpoints || []).forEach((ep) => blastNodeIds.add(ep.id));
+
+    if (blastNodeIds.size === 0) return graph;
+
+    const filteredNodes = graph.nodes.filter((n) => blastNodeIds.has(n.id));
+    const filteredEdges = graph.edges.filter((e) => blastNodeIds.has(e.source) && blastNodeIds.has(e.target));
+
+    return {
+      nodes: filteredNodes.length > 0 ? filteredNodes : graph.nodes,
+      edges: filteredEdges
+    };
+  }, [graph, impact]);
 
   const levelColorMap = {
     LOW: 'text-emerald-400 bg-emerald-950/80 border-emerald-800',
@@ -115,7 +134,7 @@ export const ImpactView: React.FC<ImpactViewProps> = ({ impactData }) => {
             </div>
           </div>
 
-          <GraphViewer graph={graph} blastRadius={impact} />
+          <GraphViewer graph={blastRadiusGraph} blastRadius={impact} />
         </div>
 
         {/* Right Column: Risk Factors & Recommendations */}

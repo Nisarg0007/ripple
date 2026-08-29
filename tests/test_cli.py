@@ -47,10 +47,23 @@ def test_cli_drift_command(capsys):
     assert "Ripple Architecture Drift" in captured.out
 
 def test_cli_check_low_risk_passes_exit_0(capsys):
-    with patch("sys.argv", ["cli.main", "check", "demo_services", "--fail-on", "high"]):
-        with pytest.raises(SystemExit) as exc_info:
-            main()
-        assert exc_info.value.code == 0
+    from risk_engine.models import RiskReport, RiskLevel
+    low_report = RiskReport(
+        total_score=10,
+        risk_level=RiskLevel.LOW,
+        factors=[],
+        directly_changed_files=["utils.py"],
+        directly_changed_nodes=["utils.py"],
+        impacted_nodes=[],
+        affected_services=["utils"],
+        affected_endpoints=[],
+        recommendations=[]
+    )
+    with patch("risk_engine.service.RiskEngine.evaluate_risk", return_value=low_report):
+        with patch("sys.argv", ["cli.main", "check", "demo_services", "--fail-on", "high"]):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            assert exc_info.value.code == 0
     captured = capsys.readouterr()
     assert "Ripple CI Check" in captured.out
     assert "PASSED" in captured.out

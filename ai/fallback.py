@@ -6,14 +6,20 @@ class DeterministicFallbackGenerator:
     Generates plain-text explanations deterministically from a Risk Report without external AI calls.
     """
     def generate(self, risk_report_dict: Dict[str, Any], reason: str = "AI provider disabled or unavailable") -> ExplanationResponse:
-        level = risk_report_dict.get("risk_level", "LOW")
+        level_raw = risk_report_dict.get("risk_level", "LOW")
+        if hasattr(level_raw, "value"):
+            level_str = str(level_raw.value)
+        else:
+            level_str = str(level_raw).replace("RiskLevel.", "")
+        level_str = level_str.capitalize()
+
         score = risk_report_dict.get("total_score", 0)
         affected_services = risk_report_dict.get("affected_services", [])
         affected_endpoints = risk_report_dict.get("affected_endpoints", [])
         factors = risk_report_dict.get("factors", [])
         recs = risk_report_dict.get("recommendations", [])
 
-        summary = f"{level}-risk change (score: {score}/100) affecting {len(affected_services)} service(s) and {len(affected_endpoints)} API endpoint(s)."
+        summary = f"{level_str}-risk change (score: {score}/100) affecting {len(affected_services)} service(s) and {len(affected_endpoints)} API endpoint(s)."
 
         factor_names = [f.get("name") if isinstance(f, dict) else str(f) for f in factors]
         if factor_names:

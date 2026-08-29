@@ -31,6 +31,14 @@ class APIEndpoint(BaseModel):
     function: str  # Handler function name
     lineno: int
 
+class HTTPClientCall(BaseModel):
+    method: str  # GET, POST, PUT, DELETE, PATCH, etc.
+    path: str  # e.g., '/payments', '/users/{user_id}'
+    source_file: str
+    function: str  # Calling function name
+    lineno: int
+    target_service: Optional[str] = None
+
 class SourceFile(BaseModel):
     path: str  # Relative path within repo
     module_name: str  # Dot-separated Python module path
@@ -38,6 +46,7 @@ class SourceFile(BaseModel):
     functions: List[FunctionInfo] = Field(default_factory=list)
     classes: List[ClassInfo] = Field(default_factory=list)
     endpoints: List[APIEndpoint] = Field(default_factory=list)
+    http_calls: List[HTTPClientCall] = Field(default_factory=list)
     function_calls: List[str] = Field(default_factory=list)  # All top-level or general function calls
     parse_error: Optional[str] = None
 

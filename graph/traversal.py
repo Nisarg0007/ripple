@@ -42,6 +42,14 @@ class ImpactAnalyzer:
                 directly_changed_node_ids
             )
 
+        # Find endpoints defined in modified files
+        impacted_endpoints: List[GraphNode] = []
+        for rel_path in directly_changed_files:
+            self._find_endpoints_in_file(
+                rel_path,
+                impacted_endpoints
+            )
+
         # If no git changes detected or fresh scan, return empty blast radius
         if not directly_changed_node_ids:
             return BlastRadiusResult(
@@ -57,9 +65,20 @@ class ImpactAnalyzer:
         impacted_nodes_map: Dict[str, ImpactedNode] = {}
         impacted_endpoints: List[GraphNode] = []
 
+        # Find endpoints defined in modified files
+        for rel_path in directly_changed_files:
+            self._find_endpoints_in_file(
+                rel_path,
+                impacted_endpoints
+            )
+
         # Queue items: (node_id, distance, path_list)
-        queue = deque([(nid, 0, [nid]) for nid in directly_changed_node_ids])
-        visited: Set[str] = set(directly_changed_node_ids)
+        start_node_ids = set(directly_changed_node_ids)
+        for ep in impacted_endpoints:
+            start_node_ids.add(ep.id)
+
+        queue = deque([(nid, 0, [nid]) for nid in start_node_ids])
+        visited: Set[str] = set(start_node_ids)
 
         max_depth = 0
 
@@ -100,6 +119,11 @@ class ImpactAnalyzer:
 
                     queue.append((dep_id, new_dist, new_path))
 
+        # Deduplicate impacted endpoints from both direct changes and downstream visits
+        for dn in directly_changed_nodes:
+            if dn.type == NodeType.ENDPOINT and dn not in impacted_endpoints:
+                impacted_endpoints.append(dn)
+
         impacted_nodes_list = sorted(list(impacted_nodes_map.values()), key=lambda x: x.distance)
 
         return BlastRadiusResult(
@@ -110,6 +134,17 @@ class ImpactAnalyzer:
             total_impacted_count=len(impacted_nodes_list),
             max_depth=max_depth
         )
+
+    def _find_endpoints_in_file(
+        self,
+        rel_path: str,
+        impacted_endpoints: List[GraphNode]
+    ):
+        for node_id, data in self.graph.nodes(data=True):
+            if data.get("file_path") == rel_path and data.get("type") == NodeType.ENDPOINT.value:
+                node = self._build_graph_node(node_id)
+                if node not in impacted_endpoints:
+                    impacted_endpoints.append(node)
 
     def _find_modified_symbols(
         self,
@@ -124,7 +159,7 @@ class ImpactAnalyzer:
         mod_line_set = set(modified_lines)
 
         for node_id, data in self.graph.nodes(data=True):
-            if data.get("file_path") == rel_path and data.get("type") in (NodeType.FUNCTION.value, NodeType.CLASS.value):
+            if data.get("file_path") == rel_path and data.get("type") in (NodeType.FUNCTION.value, NodeType.CLASS.value, NodeType.ENDPOINT.value):
                 lineno = data.get("lineno")
                 end_lineno = data.get("end_lineno") or lineno
 

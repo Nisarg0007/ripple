@@ -8,6 +8,8 @@ EXCLUDE_DIRS = {
     ".pytest_cache", ".idea", ".vscode", "dist", "build", "egg-info"
 }
 
+RIPPLE_EXCLUDED_FILES = {".ripple_telemetry.json", "ripple-report.md"}
+
 class RepositoryScanner:
     def __init__(self, root_path: str):
         self.root_path = os.path.abspath(root_path)

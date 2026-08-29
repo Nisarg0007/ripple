@@ -1,8 +1,9 @@
 import ast
-from typing import List, Tuple, Optional
-from analyzer.models import SourceFile, ImportInfo, FunctionInfo, ClassInfo, APIEndpoint
+from typing import List, Tuple, Optional, Dict, Any
+from analyzer.models import SourceFile, ImportInfo, FunctionInfo, ClassInfo, APIEndpoint, HTTPClientCall
 
 HTTP_METHODS = {"get", "post", "put", "delete", "patch", "options", "head", "trace", "api_route"}
+CLIENT_HTTP_METHODS = {"get", "post", "put", "delete", "patch", "request"}
 
 class ASTVisitor(ast.NodeVisitor):
     def __init__(self, relative_path: str):
@@ -11,8 +12,11 @@ class ASTVisitor(ast.NodeVisitor):
         self.functions: List[FunctionInfo] = []
         self.classes: List[ClassInfo] = []
         self.endpoints: List[APIEndpoint] = []
+        self.http_calls: List[HTTPClientCall] = []
         self.all_calls: List[str] = []
         self.current_function_calls: Optional[List[str]] = None
+        self.current_function_name: str = "<global>"
+        self.local_variable_values: Dict[str, ast.AST] = {}
 
     def visit_Import(self, node: ast.Import):
         for alias in node.names:
@@ -36,12 +40,20 @@ class ASTVisitor(ast.NodeVisitor):
             ))
         self.generic_visit(node)
 
+    def visit_Assign(self, node: ast.Assign):
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                self.local_variable_values[target.id] = node.value
+        self.generic_visit(node)
+
     def visit_Call(self, node: ast.Call):
         call_name = self._get_call_name(node.func)
         if call_name:
             self.all_calls.append(call_name)
             if self.current_function_calls is not None:
                 self.current_function_calls.append(call_name)
+
+            self._check_http_client_call(node, call_name)
         self.generic_visit(node)
 
     def visit_ClassDef(self, node: ast.ClassDef):
@@ -84,6 +96,9 @@ class ASTVisitor(ast.NodeVisitor):
         args = [arg.arg for arg in node.args.args]
         decorators = [self._get_call_name(d) for d in node.decorator_list if self._get_call_name(d)]
 
+        prev_fn_name = self.current_function_name
+        self.current_function_name = node.name
+
         # Extract potential FastAPI endpoints from decorators
         self._check_fastapi_endpoint(node.name, node.decorator_list, node.lineno)
 
@@ -96,6 +111,7 @@ class ASTVisitor(ast.NodeVisitor):
 
         fn_calls = self.current_function_calls
         self.current_function_calls = prev_calls
+        self.current_function_name = prev_fn_name
 
         return FunctionInfo(
             name=node.name,
@@ -130,6 +146,58 @@ class ASTVisitor(ast.NodeVisitor):
                             lineno=lineno
                         ))
 
+    def _check_http_client_call(self, node: ast.Call, call_name: str):
+        parts = call_name.lower().split(".")
+        method_part = parts[-1]
+        if method_part in CLIENT_HTTP_METHODS:
+            # e.g., httpx.get, httpx.post, requests.get, requests.post, client.get, client.post
+            if len(node.args) > 0:
+                method = method_part.upper()
+                url_node = node.args[0]
+                if method_part == "request" and len(node.args) >= 2:
+                    if isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+                        method = node.args[0].value.upper()
+                    url_node = node.args[1]
+
+                path = self._extract_path_from_node(url_node)
+                if path:
+                    self.http_calls.append(HTTPClientCall(
+                        method=method,
+                        path=path,
+                        source_file=self.relative_path,
+                        function=self.current_function_name,
+                        lineno=node.lineno
+                    ))
+
+    def _extract_path_from_node(self, node: ast.AST) -> Optional[str]:
+        if isinstance(node, ast.Name) and node.id in self.local_variable_values:
+            node = self.local_variable_values[node.id]
+
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            val = node.value
+            if "://" in val:
+                p = val.split("://", 1)[1].split("/", 1)
+                return f"/{p[1]}" if len(p) > 1 else "/"
+            return val if val.startswith("/") else f"/{val}"
+
+        if isinstance(node, ast.JoinedStr):
+            parts = []
+            for val in node.values:
+                if isinstance(val, ast.Constant) and isinstance(val.value, str):
+                    parts.append(val.value)
+                elif isinstance(val, ast.FormattedValue):
+                    var_name = ""
+                    if isinstance(val.value, ast.Name):
+                        var_name = val.value.id
+                    parts.append(f"{{{var_name or 'param'}}}")
+
+            full_str = "".join(parts)
+            if "/" in full_str:
+                idx = full_str.find("/")
+                return full_str[idx:]
+            return full_str
+        return None
+
     def _get_call_name(self, node: ast.AST) -> Optional[str]:
         if isinstance(node, ast.Name):
             return node.id
@@ -155,6 +223,7 @@ def parse_python_file(relative_path: str, content: str, module_name: str) -> Sou
             functions=visitor.functions,
             classes=visitor.classes,
             endpoints=visitor.endpoints,
+            http_calls=visitor.http_calls,
             function_calls=visitor.all_calls,
             parse_error=None
         )

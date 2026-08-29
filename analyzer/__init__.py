@@ -6,6 +6,7 @@ from analyzer.models import (
     ClassInfo,
     ImportInfo,
     APIEndpoint,
+    HTTPClientCall,
     CodeChange,
     GitInfo
 )
@@ -20,6 +21,7 @@ __all__ = [
     "ClassInfo",
     "ImportInfo",
     "APIEndpoint",
+    "HTTPClientCall",
     "CodeChange",
     "GitInfo",
     "RepositoryAnalyzer",

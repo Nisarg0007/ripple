@@ -1,5 +1,6 @@
+import os
 from typing import Optional
-from analyzer.models import AnalysisResult
+from analyzer.models import AnalysisResult, CodeChange
 from analyzer.repository import RepositoryScanner
 from analyzer.git import GitInspector
 
@@ -17,6 +18,24 @@ class RepositoryAnalyzer:
 
         git_inspector = GitInspector(self.repo_path)
         git_info = git_inspector.get_git_info(base_ref=base_ref)
+
+        # Normalize change paths relative to repo_info.root_path
+        git_root = git_inspector.get_git_root()
+        normalized_changes = []
+        for change in git_info.changes:
+            abs_change_path = os.path.abspath(os.path.join(git_root, change.file_path))
+            try:
+                rel_to_scan = os.path.relpath(abs_change_path, repo_info.root_path).replace("\\", "/")
+                if not rel_to_scan.startswith(".."):
+                    normalized_changes.append(CodeChange(
+                        file_path=rel_to_scan,
+                        change_type=change.change_type,
+                        modified_lines=change.modified_lines
+                    ))
+            except ValueError:
+                pass
+
+        git_info.changes = normalized_changes
 
         total_functions = sum(
             len(f.functions) + sum(len(c.methods) for c in f.classes)

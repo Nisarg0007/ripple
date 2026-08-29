@@ -101,20 +101,20 @@ class RiskRuleEvaluator:
                 severity="medium"
             ))
 
-        # Rule 5: Directly Changed Nodes
-        direct_count = len(blast_radius.directly_changed_nodes)
+        # Rule 5: Directly Changed Source Files
+        direct_count = len(blast_radius.directly_changed_files)
         if direct_count > 5:
             factors.append(RiskFactor(
                 name="Large Direct Surface Change",
-                description=f"{direct_count} components directly modified",
+                description=f"{direct_count} source file(s) directly modified",
                 score=20,
                 severity="medium"
             ))
             recommendations.append("Consider breaking down large PR into smaller commits")
-        elif direct_count >= 3:
+        elif direct_count >= 1:
             factors.append(RiskFactor(
-                name="Direct Component Modifications",
-                description=f"{direct_count} components directly modified",
+                name="Direct File Modification",
+                description=f"{direct_count} source file(s) directly modified",
                 score=10,
                 severity="low"
             ))

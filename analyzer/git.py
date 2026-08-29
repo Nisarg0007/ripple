@@ -4,6 +4,8 @@ import re
 from typing import List, Optional, Tuple
 from analyzer.models import GitInfo, CodeChange
 
+RIPPLE_EXCLUDED_FILES = {".ripple_telemetry.json", "ripple-report.md"}
+
 class GitInspector:
     def __init__(self, repo_path: str):
         self.repo_path = os.path.abspath(repo_path)
@@ -23,6 +25,12 @@ class GitInspector:
             return -1, ""
         except Exception:
             return -1, ""
+
+    def get_git_root(self) -> str:
+        code, out = self._run_git(["rev-parse", "--show-toplevel"])
+        if code == 0 and out:
+            return os.path.abspath(out)
+        return self.repo_path
 
     def get_git_info(self, base_ref: Optional[str] = None) -> GitInfo:
         # Check if inside git work tree
@@ -56,6 +64,9 @@ class GitInspector:
                     st = line[:2].strip()
                     file_path = line[2:].strip().replace("\\", "/")
 
+                    if os.path.basename(file_path) in RIPPLE_EXCLUDED_FILES:
+                        continue
+
                     change_type = "modified"
                     if "A" in st or "?" in st:
                         change_type = "added"
@@ -80,6 +91,8 @@ class GitInspector:
                     parts = line.split(maxsplit=1)
                     if len(parts) == 2:
                         st, file_path = parts[0], parts[1].replace("\\", "/")
+                        if os.path.basename(file_path) in RIPPLE_EXCLUDED_FILES:
+                            continue
                         if file_path not in existing_files:
                             change_type = "modified"
                             if st.startswith("A"):

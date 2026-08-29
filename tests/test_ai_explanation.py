@@ -33,7 +33,7 @@ def test_deterministic_fallback_generator():
 
     assert res.is_fallback is True
     assert res.fallback_reason == "Test fallback"
-    assert "HIGH" in res.summary
+    assert "High" in res.summary or "HIGH" in res.summary
     assert "payment-service" in res.affected_components or "POST /payments" in res.affected_components
     assert len(res.recommended_actions) > 0
 
