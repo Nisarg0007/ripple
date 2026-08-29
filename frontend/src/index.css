@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  code, pre {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B0F17;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* React Flow customizations */
+.react-flow__controls {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid #1E293B !important;
+  background: #131926 !important;
+  border-radius: 8px !important;
+}
+.react-flow__controls-button {
+  background: #131926 !important;
+  border-bottom: 1px solid #1E293B !important;
+  color: #94A3B8 !important;
+}
+.react-flow__controls-button:hover {
+  background: #1E293B !important;
+  color: #F8FAFC !important;
+}
+.react-flow__attribution {
+  display: none !important;
+}
