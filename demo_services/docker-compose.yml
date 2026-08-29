@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: demo-services/Dockerfile
+    container_name: ripple-demo-gateway
+    command: uvicorn demo_services.api_gateway.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - ORDERS_SERVICE_URL=http://orders-service:8002
+    depends_on:
+      - orders-service
+
+  users-service:
+    build:
+      context: ..
+      dockerfile: demo-services/Dockerfile
+    container_name: ripple-demo-users
+    command: uvicorn demo_services.users_service.main:app --host 0.0.0.0 --port 8001
+    ports:
+      - "8001:8001"
+
+  orders-service:
+    build:
+      context: ..
+      dockerfile: demo-services/Dockerfile
+    container_name: ripple-demo-orders
+    command: uvicorn demo_services.orders_service.main:app --host 0.0.0.0 --port 8002
+    ports:
+      - "8002:8002"
+    environment:
+      - USERS_SERVICE_URL=http://users-service:8001
+      - PAYMENT_SERVICE_URL=http://payment-service:8003
+      - INVENTORY_SERVICE_URL=http://inventory-service:8004
+    depends_on:
+      - users-service
+      - payment-service
+      - inventory-service
+
+  payment-service:
+    build:
+      context: ..
+      dockerfile: demo-services/Dockerfile
+    container_name: ripple-demo-payment
+    command: uvicorn demo_services.payment_service.main:app --host 0.0.0.0 --port 8003
+    ports:
+      - "8003:8003"
+
+  inventory-service:
+    build:
+      context: ..
+      dockerfile: demo-services/Dockerfile
+    container_name: ripple-demo-inventory
+    command: uvicorn demo_services.inventory_service.main:app --host 0.0.0.0 --port 8004
+    ports:
+      - "8004:8004"
