@@ -3,8 +3,6 @@ name: Ripple Change Impact & Risk Analysis
 "on":
   pull_request:
     branches: [ main, master ]
-  push:
-    branches: [ main, master ]
 
 jobs:
   ripple-check:
