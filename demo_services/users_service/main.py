@@ -1,7 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from demo_services.telemetry import setup_telemetry
 
 app = FastAPI(title="Users Service", version="0.1.0")
+setup_telemetry(app, "users-service")
 
 class User(BaseModel):
     user_id: str

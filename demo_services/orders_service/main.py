@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from typing import Dict, Optional
+from demo_services.telemetry import setup_telemetry
 from demo_services.orders_service.clients import (
     validate_user_client,
     reserve_inventory_client,
@@ -8,6 +9,7 @@ from demo_services.orders_service.clients import (
 )
 
 app = FastAPI(title="Orders Service", version="0.1.0")
+setup_telemetry(app, "orders-service")
 
 class CreateOrderRequest(BaseModel):
     user_id: str
@@ -30,14 +32,15 @@ def health():
     return {"status": "ok", "service": "orders-service"}
 
 @app.post("/orders", response_model=OrderResponse)
-def create_order(req: CreateOrderRequest):
+def create_order(req: CreateOrderRequest, request: Request):
     try:
+        trace_id = request.headers.get("x-trace-id")
         # 1. Validate User
-        validate_user_client(req.user_id)
+        validate_user_client(req.user_id, trace_id=trace_id)
         # 2. Reserve Inventory
-        reserve_inventory_client(req.item_id, req.quantity)
+        reserve_inventory_client(req.item_id, req.quantity, trace_id=trace_id)
         # 3. Process Payment
-        pay_res = process_payment_client(req.user_id, req.total_amount)
+        pay_res = process_payment_client(req.user_id, req.total_amount, trace_id=trace_id)
 
         order_id = f"ord_{len(ORDERS_DB) + 1000}"
         order = OrderResponse(

@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Dict
+from demo_services.telemetry import setup_telemetry
 
 app = FastAPI(title="Inventory Service", version="0.1.0")
+setup_telemetry(app, "inventory-service")
 
 class Item(BaseModel):
     item_id: str

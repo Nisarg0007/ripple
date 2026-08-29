@@ -5,6 +5,7 @@ import json
 from analyzer import RepositoryAnalyzer
 from graph import GraphEngine
 from risk_engine import RiskEngine
+from runtime import RuntimeEngine
 
 def handle_scan(args):
     path = args.path
@@ -102,6 +103,71 @@ def handle_impact(args):
         print(f"Error computing impact: {e}")
         sys.exit(1)
 
+def handle_runtime(args):
+    path = args.path
+    try:
+        runtime_engine = RuntimeEngine()
+        runtime_graph = runtime_engine.get_runtime_graph()
+
+        check_mark = "[+]" if sys.platform == "win32" and not sys.stdout.encoding or sys.stdout.encoding.lower().startswith("cp") else "✓"
+        print("\nRipple Runtime Analysis\n")
+
+        print("Services observed:")
+        if runtime_graph.services:
+            for svc in runtime_graph.services:
+                print(f"  {svc}")
+        else:
+            print("  (No runtime telemetry collected yet)")
+
+        print("\nRuntime dependencies:\n")
+        if runtime_graph.edges:
+            for edge in runtime_graph.edges:
+                print(f"  {edge.source_service} -> {edge.destination_service}")
+                print(f"    calls: {edge.request_count} | errors: {edge.error_count} | avg_lat: {edge.average_latency_ms}ms")
+        else:
+            print("  (No runtime service dependencies recorded)")
+
+        if args.drift and os.path.exists(path):
+            analyzer = RepositoryAnalyzer(path)
+            analysis = analyzer.analyze()
+            graph_engine = GraphEngine()
+            static_export = graph_engine.get_graph_export(analysis)
+
+            drift_report = runtime_engine.detect_architecture_drift(static_export)
+            print("\nArchitecture Drift Report:\n")
+            if drift_report.verified_dependencies:
+                print("  Confirmed Dependencies (Static + Runtime):")
+                for item in drift_report.verified_dependencies:
+                    print(f"    * {item.source} -> {item.target}")
+
+            if drift_report.runtime_only_dependencies:
+                print("\n  Runtime-Only Dependencies (Drift!):")
+                for item in drift_report.runtime_only_dependencies:
+                    print(f"    ! {item.source} -> {item.target} ({item.description})")
+
+            if drift_report.static_only_dependencies:
+                print("\n  Static-Only Dependencies (Unobserved):")
+                for item in drift_report.static_only_dependencies[:10]:
+                    print(f"    ? {item.source} -> {item.target}")
+
+        if args.json:
+            out = {
+                "runtime_graph": runtime_graph.model_dump()
+            }
+            if args.drift and os.path.exists(path):
+                analyzer = RepositoryAnalyzer(path)
+                analysis = analyzer.analyze()
+                graph_engine = GraphEngine()
+                static_export = graph_engine.get_graph_export(analysis)
+                out["drift_report"] = runtime_engine.detect_architecture_drift(static_export).model_dump()
+
+            print("\nRuntime Output (JSON):")
+            print(json.dumps(out, indent=2))
+
+    except Exception as e:
+        print(f"Error executing runtime analysis: {e}")
+        sys.exit(1)
+
 def main():
     parser = argparse.ArgumentParser(description="Ripple CLI - Impact analysis for code changes")
     parser.add_argument("--version", action="version", version="Ripple CLI v0.1.0")
@@ -118,12 +184,19 @@ def main():
     impact_parser.add_argument("--base", help="Git base ref to compare against (e.g. main)")
     impact_parser.add_argument("--json", action="store_true", help="Output blast radius result as JSON")
 
+    runtime_parser = subparsers.add_parser("runtime", help="Analyze live OpenTelemetry runtime service dependencies")
+    runtime_parser.add_argument("path", nargs="?", default=".", help="Path to the repository (default: current directory)")
+    runtime_parser.add_argument("--drift", action="store_true", help="Compare runtime dependency graph with static graph to detect drift")
+    runtime_parser.add_argument("--json", action="store_true", help="Output runtime telemetry result as JSON")
+
     args = parser.parse_args()
 
     if args.command == "scan":
         handle_scan(args)
     elif args.command == "impact":
         handle_impact(args)
+    elif args.command == "runtime":
+        handle_runtime(args)
     else:
         parser.print_help()
 
