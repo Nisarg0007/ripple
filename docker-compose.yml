@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: ripple-db
+    environment:
+      POSTGRES_USER: ripple
+      POSTGRES_PASSWORD: ripple_password
+      POSTGRES_DB: ripple_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ripple-backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://ripple:ripple_password@db:5432/ripple_db
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
