@@ -89,6 +89,28 @@ ripple check demo_services --fail-on high
 
 ![Ripple CLI](docs/screenshots/cli-help.png)
 
+### Run the Dashboard
+
+Start the backend from the project root:
+
+```bash
+python -m uvicorn backend.main:app --reload --port 8000
+```
+
+In a second terminal, start the frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Then open the dashboard at:
+
+```text
+http://localhost:5173
+```
+
 ## Pull Request CI
 
 Ripple integrates with GitHub Actions to analyze Pull Requests and enforce risk thresholds before code is merged.
