@@ -16,11 +16,14 @@ RISK_ORDER = {
 
 __version__ = "0.1.0"
 
+
 def get_check_mark():
     return "[+]" if sys.platform == "win32" and not sys.stdout.encoding or sys.stdout.encoding.lower().startswith("cp") else "✓"
 
+
 def get_dash():
     return "-" if sys.platform == "win32" and not sys.stdout.encoding or sys.stdout.encoding.lower().startswith("cp") else "—"
+
 
 def handle_scan(args):
     path = args.path
@@ -54,7 +57,9 @@ def handle_scan(args):
         print(f"Error analyzing repository: {e}")
         sys.exit(2)
 
+
 from ai import AIService
+
 
 def handle_impact(args):
     path = args.path
@@ -105,10 +110,12 @@ def handle_impact(args):
         if getattr(args, "explain", False):
             ai_service = AIService()
             explanation_data = ai_service.generate_explanation(risk_report.model_dump())
-            print("\n" + "="*50)
+            print("\n" + "=" * 50)
             print("Why This Matters (AI Explanation):")
-            print(f"[{'Fallback Mode' if explanation_data.is_fallback else 'AI Powered - ' + explanation_data.provider_used}]")
-            print("="*50)
+            print(
+                f"[{'Fallback Mode' if explanation_data.is_fallback else 'AI Powered - ' + explanation_data.provider_used}]"
+            )
+            print("=" * 50)
             print(f"\n{explanation_data.summary}\n")
             print(explanation_data.why_risky)
             if explanation_data.recommended_actions:
@@ -130,8 +137,10 @@ def handle_impact(args):
         print(f"Error computing impact: {e}")
         sys.exit(2)
 
+
 def handle_runtime(args):
     path = args.path
+
     try:
         runtime_engine = RuntimeEngine()
         runtime_graph = runtime_engine.get_runtime_graph()
@@ -156,6 +165,7 @@ def handle_runtime(args):
     except Exception as e:
         print(f"Error executing runtime analysis: {e}")
         sys.exit(2)
+
 
 def handle_drift(args):
     path = args.path
@@ -196,6 +206,7 @@ def handle_drift(args):
         print(f"Error computing drift: {e}")
         sys.exit(2)
 
+
 def handle_check(args):
     path = args.path
     if not os.path.exists(path):
@@ -204,10 +215,14 @@ def handle_check(args):
 
     try:
         fail_threshold_str = args.fail_on.upper()
+
         try:
             threshold_level = RiskLevel(fail_threshold_str)
         except ValueError:
-            print(f"Error: Invalid fail-on threshold '{args.fail_on}'. Valid options: low, medium, high, critical.")
+            print(
+                f"Error: Invalid fail-on threshold '{args.fail_on}'. "
+                "Valid options: low, medium, high, critical."
+            )
             sys.exit(2)
 
         analyzer = RepositoryAnalyzer(path)
@@ -221,10 +236,16 @@ def handle_check(args):
 
         dash = get_dash()
         print("\nRipple CI Check\n")
-        print(f"Change Risk: {risk_report.risk_level.value} {dash} {risk_report.total_score}/100")
+        print(
+            f"Change Risk: {risk_report.risk_level.value} "
+            f"{dash} {risk_report.total_score}/100"
+        )
 
         print("\nImpact:")
-        print(f"  {len(blast_radius.directly_changed_nodes) + blast_radius.total_impacted_count} components")
+        print(
+            f"  {len(blast_radius.directly_changed_nodes) + blast_radius.total_impacted_count} "
+            "components"
+        )
         print(f"  {len(blast_radius.impacted_endpoints)} API endpoints")
         print(f"  {blast_radius.max_depth} dependency levels")
 
@@ -233,13 +254,37 @@ def handle_check(args):
             for f in risk_report.factors:
                 print(f"  - {f.name}: {f.description}")
 
-        is_failure = RISK_ORDER[risk_report.risk_level] >= RISK_ORDER[threshold_level]
+        is_failure = (
+            RISK_ORDER[risk_report.risk_level]
+            >= RISK_ORDER[threshold_level]
+        )
         result_text = "FAILED" if is_failure else "PASSED"
 
-        print(f"\nPolicy Check (Threshold: {threshold_level.value}): {result_text}\n")
+        print(
+            f"\nPolicy Check (Threshold: {threshold_level.value}): "
+            f"{result_text}\n"
+        )
 
-        # Save Markdown artifact if requested for GitHub PR comment
+        # Save Markdown artifact if requested for GitHub PR comment.
+        # Build these sections separately so the outer f-string remains
+        # compatible with Python 3.9/3.10/3.11.
         if args.output_markdown:
+            if risk_report.factors:
+                risk_factors_md = "".join(
+                    f"- **+{f.score} {f.name}**: {f.description}\n"
+                    for f in risk_report.factors
+                )
+            else:
+                risk_factors_md = "No elevated risk factors detected."
+
+            if risk_report.recommendations:
+                recommendations_md = "".join(
+                    f"- {rec}\n"
+                    for rec in risk_report.recommendations
+                )
+            else:
+                recommendations_md = "Standard review process."
+
             md_content = f"""## Ripple Change Impact Analysis
 
 **Change Risk:** `{risk_report.risk_level.value}` ({risk_report.total_score}/100)
@@ -251,17 +296,23 @@ def handle_check(args):
 - **Affected API Endpoints:** {len(blast_radius.impacted_endpoints)}
 
 ### Risk Factors
-{"".join(f"- **+{f.score} {f.name}**: {f.description}\n" for f in risk_report.factors) if risk_report.factors else "No elevated risk factors detected."}
+{risk_factors_md}
 
 ### Recommendations
-{"".join(f"- {rec}\n" for rec in risk_report.recommendations) if risk_report.recommendations else "Standard review process."}
+{recommendations_md}
 """
+
             try:
                 with open(args.output_markdown, "w", encoding="utf-8") as f:
                     f.write(md_content)
-                print(f"[+] Saved Markdown report artifact to {args.output_markdown}")
+                print(
+                    f"[+] Saved Markdown report artifact to "
+                    f"{args.output_markdown}"
+                )
             except Exception as e:
-                print(f"[!] Warning: Could not write markdown report: {e}")
+                print(
+                    f"[!] Warning: Could not write markdown report: {e}"
+                )
 
         if args.json:
             out = {
@@ -270,6 +321,7 @@ def handle_check(args):
                 "policy_result": result_text,
                 "threshold": threshold_level.value
             }
+
             print("\nCI Check Output (JSON):")
             print(json.dumps(out, indent=2))
 
@@ -277,9 +329,11 @@ def handle_check(args):
 
     except SystemExit:
         raise
+
     except Exception as e:
         print(f"Error performing CI check: {e}")
         sys.exit(2)
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -294,36 +348,129 @@ Commands:
   check      Run CI risk policy
 """
     )
-    parser.add_argument("--version", action="version", version=f"Ripple {__version__}")
 
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"Ripple {__version__}"
+    )
 
-    scan_parser = subparsers.add_parser("scan", help="Scan a repository path and extract structured metrics")
-    scan_parser.add_argument("path", nargs="?", default=".", help="Path to repository")
-    scan_parser.add_argument("--base", help="Git base ref")
-    scan_parser.add_argument("--json", action="store_true", help="Output JSON")
+    subparsers = parser.add_subparsers(
+        dest="command",
+        help="Available commands"
+    )
 
-    impact_parser = subparsers.add_parser("impact", help="Calculate change impact and blast radius")
-    impact_parser.add_argument("path", nargs="?", default=".", help="Path to repository")
-    impact_parser.add_argument("--base", help="Git base ref")
-    impact_parser.add_argument("--explain", action="store_true", help="Generate natural language AI/Fallback explanation")
-    impact_parser.add_argument("--json", action="store_true", help="Output JSON")
+    scan_parser = subparsers.add_parser(
+        "scan",
+        help="Scan a repository path and extract structured metrics"
+    )
+    scan_parser.add_argument(
+        "path",
+        nargs="?",
+        default=".",
+        help="Path to repository"
+    )
+    scan_parser.add_argument(
+        "--base",
+        help="Git base ref"
+    )
+    scan_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output JSON"
+    )
 
-    runtime_parser = subparsers.add_parser("runtime", help="Analyze live OpenTelemetry runtime service dependencies")
-    runtime_parser.add_argument("path", nargs="?", default=".", help="Path to repository")
-    runtime_parser.add_argument("--drift", action="store_true", help="Include drift comparison")
-    runtime_parser.add_argument("--json", action="store_true", help="Output JSON")
+    impact_parser = subparsers.add_parser(
+        "impact",
+        help="Calculate change impact and blast radius"
+    )
+    impact_parser.add_argument(
+        "path",
+        nargs="?",
+        default=".",
+        help="Path to repository"
+    )
+    impact_parser.add_argument(
+        "--base",
+        help="Git base ref"
+    )
+    impact_parser.add_argument(
+        "--explain",
+        action="store_true",
+        help="Generate natural language AI/Fallback explanation"
+    )
+    impact_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output JSON"
+    )
 
-    drift_parser = subparsers.add_parser("drift", help="Compare static AST graph vs OpenTelemetry runtime telemetry")
-    drift_parser.add_argument("path", nargs="?", default=".", help="Path to repository")
-    drift_parser.add_argument("--json", action="store_true", help="Output JSON")
+    runtime_parser = subparsers.add_parser(
+        "runtime",
+        help="Analyze live OpenTelemetry runtime service dependencies"
+    )
+    runtime_parser.add_argument(
+        "path",
+        nargs="?",
+        default=".",
+        help="Path to repository"
+    )
+    runtime_parser.add_argument(
+        "--drift",
+        action="store_true",
+        help="Include drift comparison"
+    )
+    runtime_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output JSON"
+    )
 
-    check_parser = subparsers.add_parser("check", help="CI/CD policy check assessing change risk and exit codes")
-    check_parser.add_argument("path", nargs="?", default=".", help="Path to repository")
-    check_parser.add_argument("--base", help="Git base ref")
-    check_parser.add_argument("--fail-on", default="high", choices=["low", "medium", "high", "critical"], help="Risk threshold level to trigger exit code 1 (default: high)")
-    check_parser.add_argument("--output-markdown", help="Path to save Markdown PR comment report artifact")
-    check_parser.add_argument("--json", action="store_true", help="Output JSON")
+    drift_parser = subparsers.add_parser(
+        "drift",
+        help="Compare static AST graph vs OpenTelemetry runtime telemetry"
+    )
+    drift_parser.add_argument(
+        "path",
+        nargs="?",
+        default=".",
+        help="Path to repository"
+    )
+    drift_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output JSON"
+    )
+
+    check_parser = subparsers.add_parser(
+        "check",
+        help="CI/CD policy check assessing change risk and exit codes"
+    )
+    check_parser.add_argument(
+        "path",
+        nargs="?",
+        default=".",
+        help="Path to repository"
+    )
+    check_parser.add_argument(
+        "--base",
+        help="Git base ref"
+    )
+    check_parser.add_argument(
+        "--fail-on",
+        default="high",
+        choices=["low", "medium", "high", "critical"],
+        help="Risk threshold level to trigger exit code 1 (default: high)"
+    )
+    check_parser.add_argument(
+        "--output-markdown",
+        help="Path to save Markdown PR comment report artifact"
+    )
+    check_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output JSON"
+    )
 
     args = parser.parse_args()
 
@@ -339,6 +486,7 @@ Commands:
         handle_check(args)
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()
