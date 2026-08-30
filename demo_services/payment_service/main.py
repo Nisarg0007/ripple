@@ -12,7 +12,7 @@ class PaymentRequest(BaseModel):
 
 class PaymentResponse(BaseModel):
     payment_id: str
-    amount: float
+    total: float
     status: str
 
 PAYMENTS_DB: Dict[str, PaymentResponse] = {}
