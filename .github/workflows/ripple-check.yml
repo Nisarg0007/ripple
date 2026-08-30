@@ -27,7 +27,7 @@ jobs:
 
       - name: Run Ripple CI Check
         run: |
-          python -m cli.main check . --fail-on high --output-markdown ripple-report.md
+          python -m cli.main check . --base main --fail-on high --output-markdown ripple-report.md
 
       - name: Upload Ripple Report Artifact
         if: always()
