@@ -2,24 +2,44 @@
 
 ## See how far your changes travel.
 
-Ripple is a developer CLI tool and dashboard that helps software engineers understand the real downstream impact and risk of a code change before it reaches production.
+Ripple is a developer tool that analyzes how code changes propagate through services, files, functions, and APIs. It combines static dependency analysis, runtime intelligence, deterministic risk scoring, architecture drift detection, and AI explanations to help developers understand the consequences of a change before it reaches production.
 
-### Why Ripple?
+<!-- Add final Impact Analysis screenshot here -->
 
-When engineers create Pull Requests, standard git diffs show line-by-line modifications within a localized context. However, in modern microservices, APIs, and shared libraries, local code edits often trigger unseen breaking changes across other services or dependent modules. Ripple solves this by building a deterministic dependency graph to show you the ripple effect of your changes.
+## Why Ripple?
 
-### What it does
+A git diff tells developers what changed, but not necessarily what that change can affect across a dependency graph. 
 
-*   **🔍 Change Impact**: Trace how a code change propagates through services, files, functions, and APIs.
-*   **📊 Risk Engine**: Deterministic risk scoring based on actual dependency impact.
-*   **⚡ Runtime Intelligence**: Analyze observed service-to-service runtime dependencies.
-*   **🔀 Architecture Drift**: Compare static architecture with runtime behavior.
-*   **🤖 AI Explanations**: Explain deterministic risk findings in developer-friendly language.
-*   **🚦 CI**: Run Ripple automatically on Pull Requests with configurable risk thresholds.
+In modern services and APIs, a seemingly small change can propagate to downstream consumers. Ripple answers:
 
----
+*"What else could this change affect?"*
 
-### Architecture
+## What Ripple Does
+
+### 🔍 Change Impact
+Trace how a code change propagates through files, functions, services, and APIs.
+
+<!-- Add Change Impact screenshot here -->
+
+### 📊 Deterministic Risk Engine
+Calculate a transparent risk score from explicit dependency and impact signals.
+
+### ⚡ Runtime Intelligence
+Analyze observed service-to-service runtime dependencies using OpenTelemetry.
+
+### 🔀 Architecture Drift
+Compare statically discovered dependencies with runtime-observed behavior.
+
+<!-- Add Runtime/Drift screenshot here -->
+
+### 🤖 AI Explanations
+Turn the deterministic RiskReport into developer-friendly explanations. 
+*Note: AI does NOT determine the risk score. The deterministic RiskEngine remains the source of truth.*
+
+### 🚦 Pull Request CI
+Run Ripple during Pull Requests and fail according to a configurable risk threshold.
+
+## Architecture
 
 ```mermaid
 graph TD
@@ -27,62 +47,83 @@ graph TD
     B --> C[Dependency Graph]
     C --> D[Impact / Blast Radius]
     D --> E[Risk Engine]
-    
-    R[Runtime Telemetry] -.->|Drift Detection| C
     E --> F[CLI / Dashboard / CI]
     
-    E -.->|Explanations| AI[AI Layer]
-    AI -.-> F
+    R[Runtime Telemetry] -.->|Feeds runtime analysis & drift detection| C
+    E -.->|Explains deterministic RiskReport| AI[AI Layer]
 ```
 
----
+## The Demo
 
-### Screenshots
+A developer changes the Payment API response contract: `amount` → `total` without updating its downstream consumer. 
 
-> *Note: Add actual screenshots here.*
->
-> 1.  [Placeholder: Impact Analysis dashboard]
-> 2.  [Placeholder: System Graph]
-> 3.  [Placeholder: Runtime / Drift]
+Ripple detects the affected API and dependency chain, calculates the resulting risk, and surfaces the blast radius through the CLI and dashboard. *(Note: This is the demonstration scenario and not necessarily the permanent state of the healthy demo repository).*
 
----
+## Quick Start
 
-### Quick Start
-
-Clone the repository and install the CLI:
+Ripple currently runs locally and is not published to PyPI. 
 
 ```bash
-git clone https://github.com/your-org/ripple.git
+git clone https://github.com/Nisarg0007/ripple.git
 cd ripple
 python -m pip install -e .
 ```
 
-Run Ripple on the demo services:
+Then you can use the CLI:
 
 ```bash
-# View available commands
 ripple --help
-
-# Extract structural metrics
 ripple scan demo_services
-
-# Calculate change blast radius and risk
 ripple impact demo_services
-
-# CI policy check that fails on high risk
 ripple check demo_services --fail-on high
 ```
 
----
+## Pull Request CI
 
-### Built For
+Ripple integrates with GitHub Actions to analyze Pull Requests and enforce risk thresholds before code is merged.
+
+```bash
+ripple check . --fail-on high
+```
+
+## Project Structure
+
+These directories correspond to Ripple's major components:
+
+- `analyzer/`
+- `graph/`
+- `risk_engine/`
+- `runtime/`
+- `ai/`
+- `backend/`
+- `frontend/`
+- `cli/`
+- `demo_services/`
+- `tests/`
+
+## Testing
+
+The core application maintains a healthy automated test suite with **56 passed** tests verifying the graph, risk engine, and CLI layers. The React frontend production build has also been verified.
+
+## Technology Stack
+
+- **Core Analysis**: Python, NetworkX, GitPython, Pydantic
+- **Backend API**: FastAPI
+- **Frontend**: React, TypeScript, Vite, React Flow
+- **Observability**: OpenTelemetry
+- **CI**: GitHub Actions
+- **AI**: Groq, NVIDIA NIM (with deterministic fallback)
+
+## Built For
 
 **LatentForce BuildSprint 2026**
-Built using LatentCode.
 
-### Technology Stack
+Built using **LatentCode**.
 
-*   **Core / CLI**: Python, NetworkX, GitPython, Pydantic
-*   **Backend API**: FastAPI, Uvicorn, PostgreSQL, SQLAlchemy
-*   **Frontend**: React, TypeScript, Vite, React Flow
-*   **AI**: Google Gemini (with deterministic fallback)
+---
+
+### Created by
+
+**Nisarg**
+
+Built for LatentForce BuildSprint 2026 using LatentCode.
