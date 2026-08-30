@@ -1,14 +1,14 @@
-# 🌊 Ripple
+# Ripple
 
 ## See how far your changes travel.
 
 Ripple is a developer tool that analyzes how code changes propagate through services, files, functions, and APIs. It combines static dependency analysis, runtime intelligence, deterministic risk scoring, architecture drift detection, and AI explanations to help developers understand the consequences of a change before it reaches production.
 
-<!-- Add final Impact Analysis screenshot here -->
+![Ripple Impact Analysis](docs/screenshots/overview.png)
 
 ## Why Ripple?
 
-A git diff tells developers what changed, but not necessarily what that change can affect across a dependency graph. 
+A git diff tells developers what changed, but not necessarily what that change can affect across a dependency graph.
 
 In modern services and APIs, a seemingly small change can propagate to downstream consumers. Ripple answers:
 
@@ -17,27 +17,34 @@ In modern services and APIs, a seemingly small change can propagate to downstrea
 ## What Ripple Does
 
 ### 🔍 Change Impact
+
 Trace how a code change propagates through files, functions, services, and APIs.
 
-<!-- Add Change Impact screenshot here -->
+![Ripple Change Impact](docs/screenshots/impact-analysis.png)
 
 ### 📊 Deterministic Risk Engine
+
 Calculate a transparent risk score from explicit dependency and impact signals.
 
 ### ⚡ Runtime Intelligence
+
 Analyze observed service-to-service runtime dependencies using OpenTelemetry.
 
 ### 🔀 Architecture Drift
+
 Compare statically discovered dependencies with runtime-observed behavior.
 
-<!-- Add Runtime/Drift screenshot here -->
-
 ### 🤖 AI Explanations
-Turn the deterministic RiskReport into developer-friendly explanations. 
+
+Turn the deterministic RiskReport into developer-friendly explanations.
+
 *Note: AI does NOT determine the risk score. The deterministic RiskEngine remains the source of truth.*
 
 ### 🚦 Pull Request CI
+
 Run Ripple during Pull Requests and fail according to a configurable risk threshold.
+
+![Ripple GitHub Actions CI](docs/screenshots/github-actions.png)
 
 ## Architecture
 
@@ -53,15 +60,17 @@ graph TD
     E -.->|Explains deterministic RiskReport| AI[AI Layer]
 ```
 
+![Ripple System Dependency Graph](docs/screenshots/system-graph.png)
+
 ## The Demo
 
-A developer changes the Payment API response contract: `amount` → `total` without updating its downstream consumer. 
+A developer changes the Payment API response contract: `amount` → `total` without updating its downstream consumer.
 
 Ripple detects the affected API and dependency chain, calculates the resulting risk, and surfaces the blast radius through the CLI and dashboard. *(Note: This is the demonstration scenario and not necessarily the permanent state of the healthy demo repository).*
 
 ## Quick Start
 
-Ripple currently runs locally and is not published to PyPI. 
+Ripple currently runs locally and is not published to PyPI.
 
 ```bash
 git clone https://github.com/Nisarg0007/ripple.git
@@ -77,6 +86,8 @@ ripple scan demo_services
 ripple impact demo_services
 ripple check demo_services --fail-on high
 ```
+
+![Ripple CLI](docs/screenshots/cli-help.png)
 
 ## Pull Request CI
 
@@ -125,5 +136,3 @@ Built using **LatentCode**.
 ### Created by
 
 **Nisarg**
-
-Built for LatentForce BuildSprint 2026 using LatentCode.
