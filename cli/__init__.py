@@ -1,4 +1,4 @@
 """
 Ripple CLI Module
 """
-__version__ = "0.1.0"
+from .main import __version__

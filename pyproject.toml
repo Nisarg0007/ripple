@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ripple-cli"
+version = "0.1.0"
+description = "Ripple — See how far your changes travel. Dependency graph, runtime, and architecture drift analyzer."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "pydantic>=2.4.0",
+    "networkx>=3.1",
+    "gitpython>=3.1.37",
+    "pytest>=7.4.2",
+    "sqlalchemy>=2.0.0",
+    "psycopg2-binary>=2.9.9",
+    "httpx>=0.25.0"
+]
+authors = [
+    { name = "Ripple Team" }
+]
+
+[project.scripts]
+ripple = "cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["cli", "analyzer", "graph", "risk_engine", "runtime", "ai"]

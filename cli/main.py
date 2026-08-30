@@ -14,6 +14,8 @@ RISK_ORDER = {
     RiskLevel.CRITICAL: 4
 }
 
+__version__ = "0.1.0"
+
 def get_check_mark():
     return "[+]" if sys.platform == "win32" and not sys.stdout.encoding or sys.stdout.encoding.lower().startswith("cp") else "✓"
 
@@ -280,8 +282,19 @@ def handle_check(args):
         sys.exit(2)
 
 def main():
-    parser = argparse.ArgumentParser(description="Ripple CLI - Impact analysis for code changes")
-    parser.add_argument("--version", action="version", version="Ripple CLI v0.1.0")
+    parser = argparse.ArgumentParser(
+        description="Ripple — See how far your changes travel.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Commands:
+  scan       Analyze repository structure
+  impact     Analyze change blast radius and risk
+  runtime    Analyze runtime dependencies
+  drift      Detect architecture drift
+  check      Run CI risk policy
+"""
+    )
+    parser.add_argument("--version", action="version", version=f"Ripple {__version__}")
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 

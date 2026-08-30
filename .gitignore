@@ -30,8 +30,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-dist/
-build/
+frontend/dist/
+frontend/build/
 
 # Testing & Coverage
 .pytest_cache/
@@ -49,3 +49,7 @@ Thumbs.db
 # Environment variables
 .env
 .env.local
+
+# Ripple Generated
+.ripple_telemetry.json
+ripple-report.md

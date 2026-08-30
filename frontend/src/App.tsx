@@ -199,7 +199,7 @@ export const App: React.FC = () => {
 
       {/* Footer */}
       <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-600 font-mono">
-        Ripple — BuildSprint 2026 Hackathon MVP
+        Ripple — LatentForce BuildSprint 2026
       </footer>
     </div>
   );
