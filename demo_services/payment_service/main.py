@@ -12,7 +12,7 @@ class PaymentRequest(BaseModel):
 
 class PaymentResponse(BaseModel):
     payment_id: str
-    amount: float
+    total: float
     status: str
 
 PAYMENTS_DB: Dict[str, PaymentResponse] = {}
@@ -24,7 +24,7 @@ def health():
 @app.post("/payments", response_model=PaymentResponse)
 def create_payment(req: PaymentRequest):
     pay_id = f"pay_{len(PAYMENTS_DB) + 100}"
-    res = PaymentResponse(payment_id=pay_id, amount=req.amount, status="success")
+    res = PaymentResponse(payment_id=pay_id, total=req.amount, status="success")
     PAYMENTS_DB[pay_id] = res
     return res
 
